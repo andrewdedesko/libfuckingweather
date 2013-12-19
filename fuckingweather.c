@@ -76,36 +76,36 @@ int fuckingweather_fetch_conditions (struct fuckingweather_conditions *condition
 
     printf (" >> url  [%s]\n", url);
 
-    /** Extract data from html */
-    pcre *re;
-    char *pattern = "<span id=\"locationDisplaySpan\" class=\"small\">(.+)</span>";
-    int ovector[30];
-    int buff_len = strlen (buff);
-    const char *error;
-    int error_offset;
+    /** Parse html */
+    int doc_len = strlen (buff);
+    htmlDocPtr doc;
 
-    /** Compile regular expression */
-    re = pcre_compile (pattern, 0, &error, &error_offset, NULL);
-    if (re == NULL){
-        printf ("failed to compile regular expression at: %d; %s\n", error_offset, error);
-        return FUCKINGWEATHER_CURL_ERROR;
-    }
+    doc = htmlReadMemory (buff, doc_len, url, NULL, 0);
+    xmlNodePtr root_node = xmlDocGetRootElement (doc);
 
-    r = pcre_exec (re, NULL, buff, buff_len, 0, 0, ovector, 30);
-    if (r < 0){
-        printf ("matching error\n");
-        return FUCKINGWEATHER_CURL_ERROR;
-    }
-
-    printf ("ovector  [%d] [%d]\n", ovector[0], ovector[1]);
-    int str_len = ovector[1] - ovector[0];
-    char str[str_len + 1];
-    memcpy (str, buff + ovector[0], str_len);
-    str[str_len] = "\0";
-
-    printf (" >> location  %s\n", str);
+    fuckingweather__print_elements (root_node, conditions);
 
     return FUCKINGWEATHER_OK;
+}
+
+void fuckingweather__print_elements (xmlNode *node, struct fuckingweather_conditions *conditions){
+    xmlNode *curr_node = NULL;
+
+    for (curr_node = node; curr_node; curr_node = curr_node->next){
+        if (curr_node->type == XML_ELEMENT_NODE){
+            printf ("\n[%s]", curr_node->name);
+
+            // Print attributes
+            xmlAttr *attr;
+            for (attr = curr_node->properties; attr; attr = attr->next)
+                printf (" %s=\"%s\"", attr->name, xmlGetProp (curr_node, attr->name));
+
+        }else if (curr_node->type == XML_TEXT_NODE){
+            printf ("\n  %s", curr_node->content);
+        }
+
+        fuckingweather__print_elements (curr_node->children, conditions);
+    }
 }
 
 int fuckingweather_get_version_major (){

@@ -14,7 +14,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <curl/curl.h>
-#include <pcre.h>
+#include <libxml/parser.h>
+#include <libxml/tree.h>
 #include <libxml/HTMLparser.h>
 
 enum{
@@ -53,6 +54,8 @@ struct fuckingweather_conditions *fuckingweather_conditions_new ();
 void fuckingweather_conditions_free (struct fuckingweather_conditions *conditions);
 
 int fuckingweather_fetch_conditions (struct fuckingweather_conditions *conditions, const char *location);
+
+void fuckingweather__print_elements (xmlNode *node, struct fuckingweather_conditions *conditions);
 
 /**
  * fuckingweather_get_version_major ()
