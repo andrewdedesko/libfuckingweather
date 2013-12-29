@@ -6,8 +6,6 @@ include_directories ("${PROJECT_BINARY_DIR}")
 ## TODO  Don't hardcode libxml2 include directory
 include_directories (/usr/include/libxml2)
 
-set (CMAKE_C_FLAGS, "-ggdb")
-
 # libfuckingweather
 add_library (fuckingweather fuckingweather.c)
 
