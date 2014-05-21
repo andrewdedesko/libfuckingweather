@@ -3,10 +3,7 @@
  *
  */
 
-/** TODO  Check out libpcre for parsing html */
-/** TODO  html parsing (check out libxml2 HTMLparser: http://www.xmlsoft.org/html/libxml-HTMLparser.html) */
-/** TODO  Check out named capture groups (pcre) */
-/** TODO  Use substrings to get data from matches (remove html tags) */
+/** TODO  handle location not found */
 
 #ifndef _FUCKINGWEATHER_C
 #define _FUCKINGWEATHER_C
@@ -74,7 +71,8 @@ int fuckingweather_fetch_conditions (struct fuckingweather_conditions *condition
 
     curl_free (location_escaped);
 
-    printf (" >> url  [%s]\n", url);
+    conditions->url = (char *) malloc (sizeof (char) * (strlen (url) + 1));
+    strcpy (conditions->url, url);
 
     /** Parse html */
     int doc_len = strlen (buff);
@@ -83,28 +81,67 @@ int fuckingweather_fetch_conditions (struct fuckingweather_conditions *condition
     doc = htmlReadMemory (buff, doc_len, url, NULL, 0);
     xmlNodePtr root_node = xmlDocGetRootElement (doc);
 
-    fuckingweather__print_elements (root_node, conditions);
+    fuckingweather__parse_elements (root_node, conditions);
 
     return FUCKINGWEATHER_OK;
 }
 
-void fuckingweather__print_elements (xmlNode *node, struct fuckingweather_conditions *conditions){
+void fuckingweather__parse_elements (xmlNode *node, struct fuckingweather_conditions *conditions){
     xmlNode *curr_node = NULL;
+    xmlChar *node_id = NULL;
 
     for (curr_node = node; curr_node; curr_node = curr_node->next){
-        if (curr_node->type == XML_ELEMENT_NODE){
-            printf ("\n[%s]", curr_node->name);
+        if (curr_node->type == XML_TEXT_NODE){
+            xmlNode *parent_node = NULL;
+            xmlChar *parent_id = NULL;
+            xmlChar *parent_class = NULL;
 
-            // Print attributes
+            parent_node = curr_node->parent;
+
             xmlAttr *attr;
-            for (attr = curr_node->properties; attr; attr = attr->next)
-                printf (" %s=\"%s\"", attr->name, xmlGetProp (curr_node, attr->name));
+            for (attr = parent_node->properties; attr; attr = attr->next){
+                if (strcmp (attr->name, "id") == 0)
+                    parent_id = xmlGetProp (parent_node, attr->name);
 
-        }else if (curr_node->type == XML_TEXT_NODE){
-            printf ("\n  %s", curr_node->content);
+                else if (strcmp (attr->name, "class") == 0)
+                    parent_class = xmlGetProp (parent_node, attr->name);
+            }
+
+            if (parent_id != NULL){
+                /** Location */
+                if (strcmp (parent_id, "locationDisplaySpan") == 0){
+                    int str_len = strlen (curr_node->content);
+                    conditions->location = (char *) malloc (sizeof (char) * (str_len + 1));
+                    strcpy (conditions->location, curr_node->content);
+                }
+
+                xmlFree (parent_id);
+            }
+
+            if (parent_class != NULL){
+                /** Remark */
+                if (strcmp (parent_class, "remark") == 0){
+                    int str_len = strlen (curr_node->content);
+                    conditions->remark = (char *) malloc (sizeof (char) * (str_len + 1));
+                    strcpy (conditions->remark, curr_node->content);
+
+                /** Flavour */
+                }else if (strcmp (parent_class, "flavor") == 0){
+                    int str_len = strlen (curr_node->content);
+                    conditions->flavour = (char *) malloc (sizeof (char) * (str_len + 1));
+                    strcpy (conditions->flavour, curr_node->content);
+
+                /** Temperature */
+                }else if (strcmp (parent_class, "temperature") == 0 && strcmp (parent_node->name, "span") == 0){
+                    int temperature = atoi (curr_node->content);
+                    conditions->temperature = temperature;
+                }
+
+                xmlFree (parent_class);
+            }
         }
 
-        fuckingweather__print_elements (curr_node->children, conditions);
+        fuckingweather__parse_elements (curr_node->children, conditions);
     }
 }
 

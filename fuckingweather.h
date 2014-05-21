@@ -33,7 +33,7 @@ struct fuckingweather_conditions{
     char *location;
     char *url;
 
-    float temperature;
+    int temperature;
     char *remark;
     char *flavour;
 };
@@ -55,8 +55,6 @@ void fuckingweather_conditions_free (struct fuckingweather_conditions *condition
 
 int fuckingweather_fetch_conditions (struct fuckingweather_conditions *conditions, const char *location);
 
-void fuckingweather__print_elements (xmlNode *node, struct fuckingweather_conditions *conditions);
-
 /**
  * fuckingweather_get_version_major ()
  *
@@ -72,6 +70,8 @@ int fuckingweather_get_version_major ();
 int fuckingweather_get_version_minor ();
 
 int fuckingweather__curl_write_function (void *data_ptr, size_t data_len, size_t size, void *buff);
+
+void fuckingweather__parse_elements (xmlNode *node, struct fuckingweather_conditions *conditions);
 
 #endif
 
